@@ -68,6 +68,10 @@ app.get('/', (req, res) => {
   res.render('index')
 })
 
+app.get('/user', (req, res) => {
+  res.render('user', {user: req.user})
+})
+
 // Start the server
 app.listen(port, () => {
   console.log(`[APP] Running on port ${port}.`)
