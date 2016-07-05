@@ -8,6 +8,9 @@ import facebook from 'passport-facebook'
 import User from './models/user'
 import pug from 'pug'
 import config from './config'
+import bodyParser from 'body-parser'
+import cookieParser from 'cookie-parser'
+import session from 'express-session'
 
 // Definition of variables
 const app = express()
@@ -16,6 +19,9 @@ const facebookStrategy = facebook.Strategy
 
 // Express configuration
 app.set('view engine', 'pug')
+app.use(cookieParser())
+app.use(bodyParser())
+app.use(session({ secret: config.session.secret }))
 
 // Database connection
 mongoose.connect(config.db.url, (err, res) => {
@@ -34,16 +40,20 @@ passport.deserializeUser((id, done) => {
   })
 })
 
+app.use(passport.initialize())
+app.use(passport.session())
+
 // Passport Strategies
 passport.use(new facebookStrategy({
   clientID: config.fb.clientID,
   clientSecret: config.fb.clientSecret,
-  callbackURL: config.fb.callback
+  callbackURL: config.fb.callback,
+  profileFields: ['id', 'emails', 'displayName', 'picture']
   }, (accessToken, refreshToken, profile, done) => {
         process.nextTick(() => {
           User.findOne({provider_id: profile.id}, (err, user) => {
             if (err) return done(err)
-            if (user) return done(user)
+            if (user) return done(null, user)
             else {
               var newUser = new User()
               newUser.provider_id = profile.id
@@ -51,15 +61,22 @@ passport.use(new facebookStrategy({
               newUser.photo = profile.photos[0].value
               newUser.provider = 'facebook'
 
-              newUser.save((err, user) => {
+              newUser.save((err) => {
                 if(err) throw err
-                return done(null, user)
+                return done(null, newUser)
               })
             }
           })
         })
       }
   ))
+
+/*
+  Passport routes
+*/
+app.get('/login/facebook', passport.authenticate('facebook'))
+app.get('/login/facebook/callback', passport.authenticate('facebook', { successRedirect: '/user', failureRedirect: '/' }))
+
 
 /*
   Express routes
