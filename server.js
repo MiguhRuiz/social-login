@@ -6,12 +6,16 @@ import mongoose from 'mongoose'
 import passport from 'passport'
 import facebook from 'passport-facebook'
 import User from './models/user'
+import pug from 'pug'
 import config from './config'
 
 // Definition of variables
 const app = express()
 const port = config.env.port || 3000
 const facebookStrategy = facebook.Strategy
+
+// Express configuration
+app.set('view engine', 'pug')
 
 // Database connection
 mongoose.connect(config.db.url, (err, res) => {
@@ -52,15 +56,16 @@ passport.use(new facebookStrategy({
                 return done(null, user)
               })
             }
-          }
+          })
         })
-}))
+      }
+  ))
 
 /*
   Express routes
 */
 app.get('/', (req, res) => {
-  res.send('Hello World')
+  res.render('index')
 })
 
 // Start the server
